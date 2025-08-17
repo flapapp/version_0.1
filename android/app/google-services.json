@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "68200966561",
+    "project_id": "flap-app-5c0c2",
+    "storage_bucket": "flap-app-5c0c2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:68200966561:android:cc4c450b215bdbd033c3e0",
+        "android_client_info": {
+          "package_name": "com.example.flap_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCr0g16THsfy4wmSQ2HYVhOiOB3Jjh974I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
