@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'video_upload_screen.dart';
 import 'video_player_screen.dart';
+import 'challenge_list_screen.dart';
 
 class VideoMainScreen extends StatefulWidget {
   @override
@@ -55,9 +56,53 @@ class _VideoMainScreenState extends State<VideoMainScreen> {
             icon: const Icon(Icons.add_circle_outline, color: Colors.white),
             onPressed: () => Navigator.pushNamed(context, '/video-upload'),
           ),
-          IconButton(
-            icon: const Icon(Icons.person, color: Colors.white),
-            onPressed: () => _showProfile(context),
+          StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+            stream: FirebaseFirestore.instance
+                .collection('users')
+                .doc(FirebaseAuth.instance.currentUser?.uid)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.hasData && snapshot.data!.exists) {
+                final userData = snapshot.data!.data()!;
+                final avatarUrl = userData['avatarUrl'] as String?;
+                
+                return GestureDetector(
+                  onTap: () => _showProfile(context),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: avatarUrl != null && avatarUrl.isNotEmpty
+                          ? Image.network(
+                              avatarUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Icon(
+                                Icons.person,
+                                size: 24,
+                                color: Color(0xFF1e7d32),
+                              ),
+                            )
+                          : const Icon(
+                              Icons.person,
+                              size: 24,
+                              color: Color(0xFF1e7d32),
+                            ),
+                    ),
+                  ),
+                );
+              }
+              
+              return IconButton(
+                icon: const Icon(Icons.person, color: Colors.white),
+                onPressed: () => _showProfile(context),
+              );
+            },
           ),
         ],
       ),
@@ -78,60 +123,61 @@ class _VideoMainScreenState extends State<VideoMainScreen> {
               ),
             ),
 
-            // Filters
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              child: Column(
-                children: [
-                  // City and Category filters
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildFilterDropdown(
-                          _cities,
-                          _selectedCity.isEmpty ? 'Всі міста' : _selectedCity,
-                          (value) {
-                            setState(() {
-                              _selectedCity = value == 'Всі міста' ? '' : value;
-                            });
-                          },
-                          '🏙️',
+            // Filters (тільки для відео та трендів)
+            if (_selectedTab != 'challenges')
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                child: Column(
+                  children: [
+                    // City and Category filters
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildFilterDropdown(
+                            _cities,
+                            _selectedCity.isEmpty ? 'Всі міста' : _selectedCity,
+                            (value) {
+                              setState(() {
+                                _selectedCity = value == 'Всі міста' ? '' : value;
+                              });
+                            },
+                            '🏙️',
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _buildFilterDropdown(
-                          _categories,
-                          _selectedCategory.isEmpty ? 'Всі категорії' : _selectedCategory,
-                          (value) {
-                            setState(() {
-                              _selectedCategory = value == 'Всі категорії' ? '' : value;
-                            });
-                          },
-                          '⚽',
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _buildFilterDropdown(
+                            _categories,
+                            _selectedCategory.isEmpty ? 'Всі категорії' : _selectedCategory,
+                            (value) {
+                              setState(() {
+                                _selectedCategory = value == 'Всі категорії' ? '' : value;
+                              });
+                            },
+                            '⚽',
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  // Rating filter
-                  _buildFilterDropdown(
-                    _ratings,
-                    _selectedRating.isEmpty ? 'Всі рейтинги' : _selectedRating,
-                    (value) {
-                      setState(() {
-                        _selectedRating = value == 'Всі рейтинги' ? '' : value;
-                      });
-                    },
-                    '⭐',
-                  ),
-                ],
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    // Rating filter
+                    _buildFilterDropdown(
+                      _ratings,
+                      _selectedRating.isEmpty ? 'Всі рейтинги' : _selectedRating,
+                      (value) {
+                        setState(() {
+                          _selectedRating = value == 'Всі рейтинги' ? '' : value;
+                        });
+                      },
+                      '⭐',
+                    ),
+                  ],
+                ),
               ),
-            ),
 
-            // Videos List
+            // Content based on selected tab
             Expanded(
-              child: _buildVideosList(),
+              child: _buildContent(),
             ),
           ],
         ),
@@ -207,6 +253,21 @@ class _VideoMainScreenState extends State<VideoMainScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildContent() {
+    switch (_selectedTab) {
+      case 'feed':
+        return _buildVideosList(); // Загальні відео
+      case 'challenges':
+        return _buildChallengesList(); // Список челенджів
+      case 'my-videos':
+        return _buildMyVideosList(); // Мої відео
+      case 'trending':
+        return _buildTrendingVideos(); // Трендові відео
+      default:
+        return _buildVideosList();
+    }
   }
 
   Widget _buildVideosList() {
@@ -633,12 +694,7 @@ class _VideoMainScreenState extends State<VideoMainScreen> {
   }
 
   void _showProfile(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => _buildProfileSheet(),
-    );
+    Navigator.pushNamed(context, '/profile');
   }
 
   Widget _buildProfileSheet() {
@@ -665,10 +721,10 @@ class _VideoMainScreenState extends State<VideoMainScreen> {
             return const Center(child: Text('Профіль не знайдено'));
           }
 
-          final userData = snapshot.data!.data()!;
-          final displayName = userData['displayName'] ?? 'Невідомий';
-          final avatarUrl = userData['avatarUrl'] as String?;
-          final email = userData['email'] ?? '';
+                     final userData = snapshot.data!.data()!;
+           final displayName = userData['authorName'] ?? userData['displayName'] ?? 'Невідомий';
+           final avatarUrl = userData['avatarUrl'] as String?;
+           final email = userData['email'] ?? '';
 
           return Column(
             children: [
@@ -741,14 +797,14 @@ class _VideoMainScreenState extends State<VideoMainScreen> {
                 child: ListView(
                   padding: const EdgeInsets.all(20),
                   children: [
-                    _buildProfileOption(
-                      icon: Icons.edit,
-                      title: 'Редагувати профіль',
-                      onTap: () {
-                        Navigator.pop(context);
-                        // TODO: Navigate to profile edit
-                      },
-                    ),
+                                         _buildProfileOption(
+                       icon: Icons.edit,
+                       title: 'Редагувати профіль',
+                       onTap: () {
+                         Navigator.pop(context);
+                         Navigator.pushNamed(context, '/profile');
+                       },
+                     ),
                     _buildProfileOption(
                       icon: Icons.video_library,
                       title: 'Мої відео',
@@ -809,6 +865,451 @@ class _VideoMainScreenState extends State<VideoMainScreen> {
       ),
       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
       onTap: onTap,
+    );
+  }
+
+  // Список челенджів
+  Widget _buildChallengesList() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('challenges')
+          .where('status', isEqualTo: 'recruiting')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(child: Text('Помилка: ${snapshot.error}'));
+        }
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final challenges = snapshot.data?.docs ?? [];
+
+        if (challenges.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.emoji_events,
+                  size: 64,
+                  color: Colors.white.withOpacity(0.5),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Поки що немає активних челенджів',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Створіть перший челендж!',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () => Navigator.pushNamed(context, '/challenge-create'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4caf50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                  ),
+                  child: const Text(
+                    'Створити челендж',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(20),
+          itemCount: challenges.length,
+          itemBuilder: (context, index) {
+            final challenge = challenges[index].data() as Map<String, dynamic>;
+            return _buildChallengeCard(challenge, challenges[index].id);
+          },
+        );
+      },
+    );
+  }
+
+  // Картка челенджу
+  Widget _buildChallengeCard(Map<String, dynamic> challenge, String challengeId) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.white.withOpacity(0.1),
+            Colors.white.withOpacity(0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.2)),
+      ),
+      child: Column(
+        children: [
+          // Заголовок челенджу
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF4caf50), Color(0xFF66bb6a)],
+              ),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  challenge['title'] ?? 'Без назви',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  challenge['description'] ?? 'Без опису',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Icon(Icons.person, color: Colors.white70, size: 16),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Автор: ${challenge['creatorName'] ?? 'Невідомо'}',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const Spacer(),
+                    Icon(Icons.access_time, color: Colors.white70, size: 16),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${challenge['duration'] ?? 7} днів',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          
+          // Інформація про челендж
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    _buildInfoItem(
+                      Icons.people,
+                      '${challenge['currentParticipants'] ?? 0} учасників',
+                    ),
+                    const SizedBox(width: 16),
+                    _buildInfoItem(
+                      Icons.monetization_on,
+                      '${challenge['entryFee'] ?? 0} монет',
+                    ),
+                    const SizedBox(width: 16),
+                    _buildInfoItem(
+                      Icons.emoji_events,
+                      '${(challenge['prizePool'] ?? 0).toInt()} монет',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                
+                // Кнопки дій
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _joinChallenge(challengeId, challenge),
+                        icon: const Icon(Icons.video_library),
+                        label: const Text('Приєднатися'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4caf50),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _viewChallengeDetails(challengeId, challenge),
+                        icon: const Icon(Icons.visibility),
+                        label: const Text('Деталі'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(color: Colors.white),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoItem(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, color: Colors.white70, size: 16),
+        const SizedBox(width: 4),
+        Text(
+          text,
+          style: TextStyle(
+            color: Colors.white70,
+            fontSize: 12,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Мої відео
+  Widget _buildMyVideosList() {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return const SizedBox.shrink();
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('videos')
+          .where('userId', isEqualTo: currentUser.uid)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(child: Text('Помилка: ${snapshot.error}'));
+        }
+
+        final videos = snapshot.data?.docs ?? [];
+
+        if (videos.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.videocam_off,
+                  color: Colors.white.withOpacity(0.5),
+                  size: 64,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'У вас поки що немає відео',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Завантажте своє перше відео!',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () => Navigator.pushNamed(context, '/video-upload'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4caf50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                  ),
+                  child: const Text(
+                    'Завантажити відео',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(20),
+          itemCount: videos.length,
+          itemBuilder: (context, index) {
+            final video = videos[index].data() as Map<String, dynamic>;
+            return _buildVideoCard(video, videos[index].id);
+          },
+        );
+      },
+    );
+  }
+
+  // Трендові відео
+  Widget _buildTrendingVideos() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('videos')
+          .orderBy('views', descending: true)
+          .limit(20)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(child: Text('Помилка: ${snapshot.error}'));
+        }
+
+        final videos = snapshot.data?.docs ?? [];
+
+        if (videos.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.trending_up,
+                  color: Colors.white.withOpacity(0.5),
+                  size: 64,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Поки що немає трендових відео',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(20),
+          itemCount: videos.length,
+          itemBuilder: (context, index) {
+            final video = videos[index].data() as Map<String, dynamic>;
+            return _buildVideoCard(video, videos[index].id);
+          },
+        );
+      },
+    );
+  }
+
+  // Методи для роботи з челенджами
+  void _joinChallenge(String challengeId, Map<String, dynamic> challenge) {
+    // Перевірити чи користувач вже учасник
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+    
+    // Навігація до завантаження відео для челенджу
+    Navigator.pushNamed(
+      context,
+      '/video-upload',
+      arguments: {
+        'challengeId': challengeId,
+        'challengeTitle': challenge['title'],
+        'isChallengeVideo': true,
+      },
+    );
+  }
+
+  void _viewChallengeDetails(String challengeId, Map<String, dynamic> challenge) {
+    // Показати детальну інформацію про челендж
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1e7d32),
+        title: Text(
+          challenge['title'] ?? 'Деталі челенджу',
+          style: const TextStyle(color: Colors.white),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Опис:',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              challenge['description'] ?? 'Без опису',
+              style: TextStyle(color: Colors.white70),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Призовий фонд: ${challenge['prizePool']?.toInt() ?? 0} монет',
+              style: TextStyle(color: Colors.white),
+            ),
+            Text(
+              'Ставка входу: ${challenge['entryFee'] ?? 0} монет',
+              style: TextStyle(color: Colors.white),
+            ),
+            Text(
+              'Учасників: ${challenge['currentParticipants'] ?? 0}',
+              style: TextStyle(color: Colors.white70),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Закрити'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _joinChallenge(challengeId, challenge);
+            },
+            child: const Text('Приєднатися'),
+          ),
+        ],
+      ),
     );
   }
 }

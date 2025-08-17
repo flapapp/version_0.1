@@ -95,58 +95,94 @@ class _LoginScreenState extends State<LoginScreen> {
                 SizedBox(height: 30),
                 
                 // Кнопка увійти
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25),
+                Container(
+                  width: double.infinity,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Color(0xFF4caf50),
+                        Color(0xFF66bb6a),
+                      ],
                     ),
-                    backgroundColor: Color(0xFF4caf50),
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0xFF4caf50).withOpacity(0.3),
+                        blurRadius: 15,
+                        offset: Offset(0, 8),
+                      ),
+                    ],
                   ),
-                  onPressed: () async {
-  if (_formKey.currentState!.validate()) {
-    try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-      Navigator.pushReplacementNamed(context, '/mode');
-    } on FirebaseAuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? 'Помилка входу')),
-      );
-    }
-  }
-},
-                  child: Text(
-                    'УВІЙТИ',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1,
-                      fontSize: 16,
-                      color: Colors.white,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    onPressed: () async {
+                      if (_formKey.currentState!.validate()) {
+                        try {
+                          await FirebaseAuth.instance.signInWithEmailAndPassword(
+                            email: _emailController.text.trim(),
+                            password: _passwordController.text.trim(),
+                          );
+                          Navigator.pushReplacementNamed(context, '/mode');
+                        } on FirebaseAuthException catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(e.message ?? 'Помилка входу')),
+                          );
+                        }
+                      }
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // FLAP логотип
+                        Container(
+                          padding: EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.sports_soccer,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'FLAP',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 2,
+                                  fontSize: 14,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Text(
+                          'УВІЙТИ',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 2,
+                            fontSize: 18,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                SizedBox(height: 20),
-                
-                // Соціальні кнопки
-                Text(
-                  'або увійти через',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.8),
-                    fontSize: 14,
-                  ),
-                ),
-                SizedBox(height: 20),
-                
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _socialButton('Google', Icons.g_mobiledata, Colors.red),
-                    _socialButton('Facebook', Icons.facebook, Colors.blue),
-                  ],
-                ),
+
               ],
             ),
           ),
@@ -155,28 +191,5 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _socialButton(String text, IconData icon, Color color) {
-    return Container(
-      width: 120,
-      height: 50,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(25),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: Colors.white, size: 20),
-          SizedBox(width: 8),
-          Text(
-            text,
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 }

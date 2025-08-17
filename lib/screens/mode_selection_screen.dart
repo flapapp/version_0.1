@@ -84,6 +84,16 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF1e7d32),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.person, color: Colors.white),
+            onPressed: () => Navigator.pushNamed(context, '/profile'),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -158,15 +168,43 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen> {
                       ),
                     ),
                     const SizedBox(height: 15),
-                    Text(
-                      _currentGreeting,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                      textAlign: TextAlign.center,
+                    // Відображення імені користувача
+                    StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                      stream: _userStream,
+                      builder: (context, snapshot) {
+                                                 if (snapshot.hasData && snapshot.data!.exists) {
+                           final data = snapshot.data!.data();
+                           final displayName = data?['authorName'] ?? data?['displayName'] ?? 'Гравець';
+                          return Text(
+                            displayName,
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                            textAlign: TextAlign.center,
+                          );
+                        }
+                        return const Text(
+                          'Гравець',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                          textAlign: TextAlign.center,
+                        );
+                      },
                     ),
+                    const SizedBox(height: 10),
+                                           Text(
+                         _currentGreeting,
+                         style: const TextStyle(
+                           fontSize: 18,
+                           color: Colors.white,
+                         ),
+                         textAlign: TextAlign.center,
+                       ),
                     const SizedBox(height: 10),
                     Text(
                       'Ваш рейтинг: 4.2 • 45 матчів зіграно',
@@ -189,7 +227,7 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen> {
               const SizedBox(height: 30),
 
               // Відео
-                            GestureDetector(
+              GestureDetector(
                 onTap: () => Navigator.pushNamed(context, '/video-main'),
                 child: Container(
                   width: double.infinity,
@@ -216,16 +254,16 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen> {
                       children: [
                         Row(
                           children: const [
-                            Text('��', style: TextStyle(fontSize: 30)),
+                            Icon(Icons.video_library, size: 30, color: Colors.white),
                             SizedBox(width: 15),
-                            Text(
-                              'ВІДЕО',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
+                                                     Text(
+                           'ВІДЕО',
+                           style: TextStyle(
+                             fontSize: 32,
+                             fontWeight: FontWeight.bold,
+                             color: Colors.white,
+                           ),
+                         ),
                           ],
                         ),
                         const SizedBox(height: 10),
@@ -240,11 +278,11 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: const [
-                            _FunctionItem('📤', 'Завантаження'),
-                            _FunctionItem('🏆', 'Челенджі'),
-                            _FunctionItem('🗳️', 'Голосування'),
-                            _FunctionItem('💬', 'Коментарі'),
-                            _FunctionItem('⭐', 'Рейтинг'),
+                            _FunctionItem(Icons.cloud_upload, 'Завантаження'),
+                            _FunctionItem(Icons.emoji_events, 'Челенджі'),
+                            _FunctionItem(Icons.how_to_vote, 'Голосування'),
+                            _FunctionItem(Icons.comment, 'Коментарі'),
+                            _FunctionItem(Icons.star, 'Рейтинг'),
                           ],
                         ),
                       ],
@@ -284,16 +322,16 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen> {
                       children: [
                         Row(
                           children: const [
-                            Text('⚽', style: TextStyle(fontSize: 30)),
+                            Icon(Icons.sports_soccer, size: 30, color: Colors.white),
                             SizedBox(width: 15),
-                            Text(
-                              'МАТЧІ',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
+                                                     Text(
+                           'МАТЧІ',
+                           style: TextStyle(
+                             fontSize: 32,
+                             fontWeight: FontWeight.bold,
+                             color: Colors.white,
+                           ),
+                         ),
                           ],
                         ),
                         const SizedBox(height: 10),
@@ -308,11 +346,11 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: const [
-                            _FunctionItem('🔍', 'Пошук'),
-                            _FunctionItem('➕', 'Створення'),
-                            _FunctionItem('⚖️', 'Баланс'),
-                            _FunctionItem('📊', 'Рейтинг'),
-                            _FunctionItem('👥', 'Друзі'),
+                            _FunctionItem(Icons.search, 'Пошук'),
+                            _FunctionItem(Icons.add, 'Створення'),
+                            _FunctionItem(Icons.balance, 'Баланс'),
+                            _FunctionItem(Icons.bar_chart, 'Рейтинг'),
+                            _FunctionItem(Icons.people, 'Друзі'),
                           ],
                         ),
                       ],
@@ -329,7 +367,7 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen> {
 }
 
 class _FunctionItem extends StatelessWidget {
-  final String icon;
+  final IconData icon;
   final String label;
   const _FunctionItem(this.icon, this.label, {Key? key}) : super(key: key);
 
@@ -337,7 +375,7 @@ class _FunctionItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(icon, style: const TextStyle(fontSize: 20)),
+        Icon(icon, size: 20, color: Colors.white),
         const SizedBox(height: 5),
         Text(
           label,

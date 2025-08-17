@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/profile_creation_screen.dart';
+import 'screens/profile_screen.dart';
 import 'screens/mode_selection_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -39,9 +40,16 @@ class MyApp extends StatelessWidget {
         '/': (context) => WelcomeScreen(),
         '/login': (context) => LoginScreen(),
         '/register': (context) => RegisterScreen(),
-        '/profile': (context) => ProfileCreationScreen(),
+        '/profile': (context) => ProfileScreen(),
+        '/profile-edit': (context) => ProfileCreationScreen(),
         '/mode': (context) => ModeSelectionScreen(),
-        '/video-upload': (context) => VideoUploadScreen(),
+                    '/video-upload': (context) {
+              final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+              return VideoUploadScreen(
+                challengeId: args?['challengeId'],
+                challengeTitle: args?['challengeTitle'],
+              );
+            },
         '/video-main': (context) => VideoMainScreen(),
         // VideoPlayerScreen не має маршруту, оскільки він викликається з параметрами
       },

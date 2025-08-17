@@ -8,11 +8,48 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 class ProfileCreationScreen extends StatefulWidget {
+  final bool isEditing;
+  
+  const ProfileCreationScreen({Key? key, this.isEditing = false}) : super(key: key);
+  
   @override
   _ProfileCreationScreenState createState() => _ProfileCreationScreenState();
 }
 
 class _ProfileCreationScreenState extends State<ProfileCreationScreen> {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.isEditing) {
+      _loadUserData();
+    }
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUser.uid)
+            .get();
+        
+        if (userDoc.exists) {
+          final userData = userDoc.data()!;
+          setState(() {
+            _nameController.text = userData['authorName'] ?? userData['displayName'] ?? '';
+            _surnameController.text = userData['surname'] ?? '';
+            _cityController.text = userData['city'] ?? '';
+            _ageController.text = userData['age']?.toString() ?? '';
+            _selectedPosition = userData['position'];
+            _selectedExperience = userData['experience'];
+          });
+        }
+      }
+    } catch (e) {
+      print('Error loading user data: $e');
+    }
+  }
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _surnameController = TextEditingController();
@@ -85,7 +122,7 @@ class _ProfileCreationScreenState extends State<ProfileCreationScreen> {
             child: Column(
               children: [
                 Text(
-                  'Створити профіль',
+                  widget.isEditing ? 'Редагувати профіль' : 'Створити профіль',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -399,7 +436,7 @@ if (_pickedImage != null) {
   }
 },
                         child: Text(
-                          'Створити профіль',
+                          widget.isEditing ? 'Зберегти зміни' : 'Створити профіль',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,

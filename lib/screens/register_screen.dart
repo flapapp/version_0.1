@@ -168,54 +168,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
 
-                const Text(
-                  'Або зареєструйтесь через:',
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
-                ),
-                const SizedBox(height: 15),
-
-                Container(
-                  width: double.infinity,
-                  height: 45,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(15),
-                    border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
-                  ),
-                  child: TextButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Реєстрація через Google...')),
-                      );
-                    },
-                    icon: const Icon(Icons.g_mobiledata, color: Colors.white),
-                    label: const Text('Зареєструватися через Google',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                  ),
-                ),
-                const SizedBox(height: 10),
-
-                Container(
-                  width: double.infinity,
-                  height: 45,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(15),
-                    border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
-                  ),
-                  child: TextButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Реєстрація через Facebook...')),
-                      );
-                    },
-                    icon: const Icon(Icons.facebook, color: Colors.white),
-                    label: const Text('Зареєструватися через Facebook',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                  ),
-                ),
               ],
             ),
           ),

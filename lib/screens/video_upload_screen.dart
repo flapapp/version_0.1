@@ -5,8 +5,18 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io';
+import '../services/challenge_service.dart';
 
 class VideoUploadScreen extends StatefulWidget {
+  final String? challengeId;
+  final String? challengeTitle;
+  
+  const VideoUploadScreen({
+    Key? key, 
+    this.challengeId, 
+    this.challengeTitle,
+  }) : super(key: key);
+
   @override
   _VideoUploadScreenState createState() => _VideoUploadScreenState();
 }
@@ -127,7 +137,7 @@ class _VideoUploadScreenState extends State<VideoUploadScreen> {
         final city = userData?['city'] ?? 'Невідомо';
 
         // Зберігаємо метадані в Firestore
-        await FirebaseFirestore.instance.collection('videos').add({
+        final videoDoc = await FirebaseFirestore.instance.collection('videos').add({
           'userId': uid,
           'authorName': authorName,
           'city': city,
@@ -142,9 +152,22 @@ class _VideoUploadScreenState extends State<VideoUploadScreen> {
           'likes': 0,
           'dislikes': 0,
           'rating': 0.0,
+          'challengeId': widget.challengeId, // ID челенджу, якщо є
+          'challengeTitle': widget.challengeTitle, // Назва челенджу, якщо є
           'createdAt': FieldValue.serverTimestamp(),
           'updatedAt': FieldValue.serverTimestamp(),
         });
+
+        // Якщо це відео для челенджу, додаємо його до челенджу
+        if (widget.challengeId != null) {
+          try {
+            final challengeService = ChallengeService();
+            await challengeService.addVideoToChallenge(widget.challengeId!, videoDoc.id);
+          } catch (e) {
+            print('Error adding video to challenge: $e');
+            // Не показуємо помилку користувачу, оскільки відео вже завантажено
+          }
+        }
 
         // Очищаємо форму
         _titleController.clear();
@@ -157,7 +180,14 @@ class _VideoUploadScreenState extends State<VideoUploadScreen> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Відео успішно завантажено!')),
+          SnackBar(
+            content: Text(
+              widget.challengeId != null 
+                ? 'Відео успішно завантажено для челенджу!'
+                : 'Відео успішно завантажено!'
+            ),
+            backgroundColor: Colors.green,
+          ),
         );
 
         // Повертаємося назад
@@ -184,9 +214,11 @@ class _VideoUploadScreenState extends State<VideoUploadScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
-          'Завантажити відео',
-          style: TextStyle(color: Colors.white),
+        title: Text(
+          widget.challengeId != null 
+            ? 'Відео для челенджу: ${widget.challengeTitle}'
+            : 'Завантажити відео',
+          style: const TextStyle(color: Colors.white),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -202,9 +234,11 @@ class _VideoUploadScreenState extends State<VideoUploadScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Заголовок
-                const Text(
-                  'Покажи свої навички!',
-                  style: TextStyle(
+                Text(
+                  widget.challengeId != null 
+                    ? 'Подай відео для челенджу!'
+                    : 'Покажи свої навички!',
+                  style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
@@ -212,7 +246,9 @@ class _VideoUploadScreenState extends State<VideoUploadScreen> {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Завантаж відео та отримай оцінки від спільноти',
+                  widget.challengeId != null
+                    ? 'Завантаж відео та брати участь у челенджі'
+                    : 'Завантаж відео та отримай оцінки від спільноти',
                   style: TextStyle(
                     fontSize: 16,
                     color: Colors.white.withOpacity(0.8),
@@ -469,7 +505,11 @@ class _VideoUploadScreenState extends State<VideoUploadScreen> {
                     ),
                     onPressed: _isUploading || _pickedVideo == null ? null : _uploadVideo,
                     child: Text(
-                      _isUploading ? 'ЗАВАНТАЖЕННЯ...' : 'ЗАВАНТАЖИТИ ВІДЕО',
+                      _isUploading 
+                        ? 'ЗАВАНТАЖЕННЯ...' 
+                        : widget.challengeId != null 
+                          ? 'ПОДАТИ ВІДЕО ДЛЯ ЧЕЛЕНДЖУ'
+                          : 'ЗАВАНТАЖИТИ ВІДЕО',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
